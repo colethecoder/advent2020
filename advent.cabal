@@ -17,6 +17,12 @@ copyright:      2020 Author name here
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
+data-files:     
+      input.txt
+    , input2.txt
+    , input3.txt
+    , input4.txt
+data-dir:       data
 extra-source-files:
     README.md
     ChangeLog.md

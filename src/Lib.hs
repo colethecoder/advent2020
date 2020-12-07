@@ -11,44 +11,44 @@ import Data.Matrix
 import Text.ParserCombinators.Parsec
 import Control.Lens.Fold ((^?))
 import Control.Lens.Combinators (element)
+import Paths_advent
 
 advent1 :: IO ()
 advent1 = do  
-        handle <- openFile "c:/repos/advent/advent/src/input.txt" ReadMode
-        contents <- hGetContents handle
+        filepath <- getDataFileName "input.txt"
+        contents <- readFile filepath
         let singlewords = words contents
             list = multiplypairs $ filter istarget $ sumPairs $ pairs $ f singlewords
         print list
         print $ map (\(x,y,z) -> x*y*z) $ filter (\(x,y,z) -> x+y+z == 2020) $ triples $ f singlewords
-        hClose handle 
 
 advent2 :: IO ()
 advent2 = do
-        handle <- openFile "c:/repos/advent/advent/src/input2.txt" ReadMode
-        contents <- hGetContents handle
+        filepath <- getDataFileName "input2.txt"
+        contents <- readFile filepath
         print $ case parsePasswords contents of
             Left err -> show err
             Right pwds -> show $ countValidPasswords pwds
         print $ case parsePasswords contents of
             Left err -> show err
             Right pwds -> show $ countValidPasswords2 pwds
-        hClose handle
 
 advent3 :: IO ()
 advent3 = do
-        handle <- openFile "c:/repos/advent/advent/src/input3.txt" ReadMode
-        contents <- hGetContents handle
-        print $ case parseMap contents of
+        filepath <- getDataFileName "input3.txt"
+        contents <- readFile filepath
+        let parsedFile = parseMap contents
+        print $ case parsedFile of
             Left err -> show err
             Right m  -> show $ countTreesOnRoute 3 1 m
-        print $ case parseMap contents of
+        print $ case parsedFile of
             Left err -> show err
-            Right m  -> show $ (countTreesOnRoute 1 1 m) * 
-                (countTreesOnRoute 3 1 m) * 
-                (countTreesOnRoute 5 1 m) * 
-                (countTreesOnRoute 7 1 m) * 
-                (countTreesOnRoute 1 2 m)
-        hClose handle
+            Right m  -> show $ 
+                   (countTreesOnRoute 1 1 m)
+                *  (countTreesOnRoute 3 1 m) 
+                *  (countTreesOnRoute 5 1 m)
+                *  (countTreesOnRoute 7 1 m) 
+                *  (countTreesOnRoute 1 2 m)
 
 
 countTreesOnRoute :: Int -> Int -> Matrix MapCell -> Int
@@ -123,7 +123,6 @@ charAtPositionMatches :: String -> Char -> Int -> Bool
 charAtPositionMatches str ch pos = case str ^? element (pos-1) of
                                     Just x -> x == ch
                                     Nothing -> False
-
 
 eol :: GenParser Char st Char
 eol = char '\n'
