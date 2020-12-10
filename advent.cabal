@@ -23,6 +23,7 @@ data-files:
     , input3.txt
     , input4.txt
     , input5.txt
+    , input6.txt
 data-dir:       data
 extra-source-files:
     README.md
@@ -37,6 +38,7 @@ library
       Lib
     , Advent4
     , Advent5
+    , Advent6
   other-modules:
       Paths_advent
   hs-source-dirs:
