@@ -15,14 +15,20 @@ advent7 = do
     contents <- readFile filepath   
     print $ case parseBags contents of
         Left err -> show err
-        Right r -> show $ foldr f [] r
+        Right r -> show $ h ["shiny gold"] r
 
-f :: (String, [(Int, String)]) -> [String] -> [String]
-f (key, val) acc = if g val then key : acc else acc
+h :: [String] -> [(String, [(Int, String)])] -> [String]
+h inners bags = foldr (f inners) [] bags 
 
-g :: [(Int,String)] -> Bool
-g [] = False
-g ((_, xName):xs) = if xName == "shiny gold" then True else g xs
+f :: [String] -> (String, [(Int, String)]) -> [String] -> [String]
+f matches (key, val) acc = if g matches val then key : acc else acc
+
+g :: [String] -> [(Int,String)] -> Bool
+g _ [] = False
+g matches ((_, xName):xs) = 
+    if any (\x->xName == x) matches 
+    then True 
+    else g matches xs
 
 eol :: GenParser Char st Char
 eol = char '\n'
