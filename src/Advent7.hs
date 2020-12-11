@@ -13,33 +13,39 @@ advent7 :: IO ()
 advent7 = do  
     filepath <- getDataFileName "input7.txt"
     contents <- readFile filepath    
-    print $ contents
+    print $ case parseBags contents of
+        Left err -> show err
+        Right r -> show r
 
---eol :: GenParser Char st Char
---eol = char '\n'
---
---bagsFile :: GenParser Char () [[[Char]]]
---customsFile = 
---    do result <- many1 customsBlock
---       eof
---       return result
---
---customsBlock :: GenParser Char st [[Char]]
---customsBlock = 
---    do entries <- customsEntries
---       optional eol
---       return entries
---
---customsEntries :: GenParser Char st [[Char]]
---customsEntries =
---    do result <- many1 customsEntry
---       return $ result
---
---customsEntry :: GenParser Char st [Char]
---customsEntry = do
---    cs <- many1 letter
---    eol
---    return cs
---
---parseBags :: String -> Either ParseError (Map String [(Int, String)])
---parseBags =  parse customsFile "(unknown)"
+eol :: GenParser Char st Char
+eol = char '\n'
+
+bagsFile :: GenParser Char () (Map String [(Int, String)])
+bagsFile = 
+    do result <- many1 bagEntry
+       eof
+       return $ Map.fromList result
+
+bagEntry :: GenParser Char st (String, [(Int, String)])
+bagEntry =
+    do result <- manyTill anyChar (try $ string " bags contain ")
+       x <- choice [emptyBagContent, many1 bagContentEntry]
+       eol
+       return $ (result, x)
+
+emptyBagContent :: GenParser Char st [(Int, String)]
+emptyBagContent =
+    do string "no other bags."
+       return []
+
+bagContentEntry :: GenParser Char st (Int, String)
+bagContentEntry =
+    do count <- many1 digit
+       char ' '
+       x <- many1 (noneOf ",.")
+       oneOf ",."
+       optional $ char ' '
+       return $ (read count, x)
+
+parseBags :: String -> Either ParseError (Map String [(Int, String)])
+parseBags =  parse bagsFile "(unknown)"
