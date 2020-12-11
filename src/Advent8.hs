@@ -11,49 +11,69 @@ import qualified Data.Map.Strict as Map
 
 advent8 :: IO ()
 advent8 = do  
-    filepath <- getDataFileName "input7.txt"
+    filepath <- getDataFileName "input8.txt"
     contents <- readFile filepath   
-    print $ case parseBags contents of
-        Left err -> show err
-        Right r -> show $ foldr f [] r
-
-f :: (String, [(Int, String)]) -> [String] -> [String]
-f (key, val) acc = if g val then key : acc else acc
-
-g :: [(Int,String)] -> Bool
-g [] = False
-g ((_, xName):xs) = if xName == "shiny gold" then True else g xs
+    print $ parseInstructions contents
 
 eol :: GenParser Char st Char
 eol = char '\n'
 
-bagsFile :: GenParser Char () [(String, [(Int, String)])]
-bagsFile = 
-    do result <- many1 bagEntry
+sign :: GenParser Char st (Int -> Int)
+sign = do 
+    f <- choice [neg, pos]
+    return f     
+
+neg :: GenParser Char st (Int -> Int)
+neg = do
+    char '-'
+    return negate
+
+pos :: GenParser Char st (Int -> Int)
+pos = do
+    optional (char '+')
+    return id
+
+int :: GenParser Char st Int
+int = do
+    s <- sign
+    d <- many1 digit
+    return $ s $ read d
+
+instructionFile :: GenParser Char () [Instruction]
+instructionFile = 
+    do result <- many1 instructionEntry
        eof
        return result
 
-bagEntry :: GenParser Char st (String, [(Int, String)])
-bagEntry =
-    do result <- manyTill anyChar (try $ string " bags contain ")
-       x <- choice [emptyBagContent, many1 bagContentEntry]
+instructionEntry :: GenParser Char st Instruction
+instructionEntry =
+    do x <- choice [nop, jmp, acc]
        eol
-       return $ (result, x)
+       return x
 
-emptyBagContent :: GenParser Char st [(Int, String)]
-emptyBagContent =
-    do string "no other bags."
-       return []
+nop :: GenParser Char st Instruction
+nop =
+    do string "nop "
+       i <- int
+       return $ NOP i
 
-bagContentEntry :: GenParser Char st (Int, String)
-bagContentEntry =
-    do count <- many1 digit
-       char ' '
-       x <- manyTill anyChar (try $ string " bag")
-       optional $ char 's'
-       oneOf ",."
-       optional $ char ' '
-       return (read count, x)
+jmp :: GenParser Char st Instruction
+jmp =
+    do string "jmp "
+       i <- int
+       return $ JMP i
 
-parseBags :: String -> Either ParseError [(String, [(Int, String)])]
-parseBags =  parse bagsFile "(unknown)"
+acc :: GenParser Char st Instruction
+acc =
+    do string "acc "
+       i <- int
+       return $ ACC i
+
+parseInstructions :: String -> Either ParseError [Instruction]
+parseInstructions =  parse instructionFile "(unknown)"
+
+data Instruction =
+    NOP Int
+  | JMP Int
+  | ACC Int
+  deriving Show
