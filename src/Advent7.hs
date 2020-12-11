@@ -3,7 +3,7 @@ module Advent7
     ) where
 
 import System.IO ()
-import Data.List ( sort, nub, intersect )
+import Data.List ( sort, nub, intersect, isSubsequenceOf )
 import Text.ParserCombinators.Parsec
 import Paths_advent
 import Data.Map.Strict (Map)
@@ -15,14 +15,34 @@ advent7 = do
     contents <- readFile filepath   
     print $ case parseBags contents of
         Left err -> show err
-        Right r -> show $ foldr f [] r
+        Right r -> show $ length $ filter (\x -> x/="shiny gold") $ h ["shiny gold"] r
+    print $ case parseBags contents of
+        Left err -> show err
+        Right r -> show $ i "shiny gold" r
 
-f :: (String, [(Int, String)]) -> [String] -> [String]
-f (key, val) acc = if g val then key : acc else acc
+i :: String -> [(String, [(Int, String)])] -> Int
+i col bags = 
+    let bag = head $ filter (\x -> col == fst x) bags in
+    sum $ map (\x -> (fst x) * (1 + (i (snd x) bags))) $ snd bag
 
-g :: [(Int,String)] -> Bool
-g [] = False
-g ((_, xName):xs) = if xName == "shiny gold" then True else g xs
+
+h :: [String] -> [(String, [(Int, String)])] -> [String]
+h inners bags = 
+    let outers = sort $ foldr (f inners) [] bags in
+    if outers == [] || (isSubsequenceOf outers $ sort inners)
+    then inners
+    else h (sort $ nub $ inners ++ outers) bags
+
+
+f :: [String] -> (String, [(Int, String)]) -> [String] -> [String]
+f matches (key, val) acc = if g matches val then key : acc else acc
+
+g :: [String] -> [(Int,String)] -> Bool
+g _ [] = False
+g matches ((_, xName):xs) = 
+    if any (\x->xName == x) matches 
+    then True 
+    else g matches xs
 
 eol :: GenParser Char st Char
 eol = char '\n'
