@@ -12,19 +12,26 @@ import qualified Data.Map.Strict as Map
 advent7 :: IO ()
 advent7 = do  
     filepath <- getDataFileName "input7.txt"
-    contents <- readFile filepath    
+    contents <- readFile filepath   
     print $ case parseBags contents of
         Left err -> show err
-        Right r -> show r
+        Right r -> show $ foldr f [] r
+
+f :: (String, [(Int, String)]) -> [String] -> [String]
+f (key, val) acc = if g val then key : acc else acc
+
+g :: [(Int,String)] -> Bool
+g [] = False
+g ((_, xName):xs) = if xName == "shiny gold" then True else g xs
 
 eol :: GenParser Char st Char
 eol = char '\n'
 
-bagsFile :: GenParser Char () (Map String [(Int, String)])
+bagsFile :: GenParser Char () [(String, [(Int, String)])]
 bagsFile = 
     do result <- many1 bagEntry
        eof
-       return $ Map.fromList result
+       return result
 
 bagEntry :: GenParser Char st (String, [(Int, String)])
 bagEntry =
@@ -42,10 +49,11 @@ bagContentEntry :: GenParser Char st (Int, String)
 bagContentEntry =
     do count <- many1 digit
        char ' '
-       x <- many1 (noneOf ",.")
+       x <- manyTill anyChar (try $ string " bag")
+       optional $ char 's'
        oneOf ",."
        optional $ char ' '
-       return $ (read count, x)
+       return (read count, x)
 
-parseBags :: String -> Either ParseError (Map String [(Int, String)])
+parseBags :: String -> Either ParseError [(String, [(Int, String)])]
 parseBags =  parse bagsFile "(unknown)"
