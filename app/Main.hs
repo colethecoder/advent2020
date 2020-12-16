@@ -7,6 +7,7 @@ import Advent6 (advent6)
 import Advent7 (advent7)
 import Advent8 (advent8)
 import Advent9 (advent9)
+import Advent10 (advent10)
 
 main :: IO ()
 main = do
@@ -18,5 +19,6 @@ main = do
         --advent6
         --advent7
         --advent8
-        advent9
+        --advent9
+        advent10
         print "Done!"
