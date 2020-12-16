@@ -11,14 +11,15 @@ advent10 :: IO ()
 advent10 = do  
     filepath <- getDataFileName "input10.txt"
     contents <- readFile filepath   
-    let nums = 0 : (sort $ getNumericList $ words contents)
-        diffs = f 0 $  nums
-        threes = length $ filter (\x -> x == 3) diffs
-        ones   = length $ filter (\x -> x == 1) diffs    
-    print $ ones * (threes)
+    let nums = sort $ getNumericList $ words contents
+        diffs = f 0 (0:nums)
+        threes = length $ filter (== 3) diffs
+        ones   = length $ filter (== 1) diffs    
+    print $ ones * threes
+    print $ h nums [(0,1)]
 
 getNumericList :: [String] -> [Int]
-getNumericList words = map read words
+getNumericList = map read
 
 f :: Int -> [Int] -> [Int]
 f prev [] = [3] -- last one is always 3 higher
@@ -26,10 +27,14 @@ f prev (x:xs) = (x-prev) : f x xs
 
 g :: [Int] -> Int
 g diffs = 
-    let threes = length $ filter (\x -> x == 3) diffs
-        ones   = length $ filter (\x -> x == 1) diffs in
+    let threes = length $ filter (== 3) diffs
+        ones   = length $ filter (== 1) diffs in
     ones * threes
 
---h :: Int -> [Int] -> [[Int]]
-
-
+h :: [Int] -> [(Int,Int)] -> Int
+h (x:xs) memo =
+  case xs of
+    [] -> i
+    _  -> h xs ((x, i):memo)
+  where
+    i = sum $ map snd $ takeWhile (\(y, _) -> x - y <= 3) memo
