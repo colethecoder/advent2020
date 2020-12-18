@@ -9,7 +9,7 @@ import Data.Maybe (fromMaybe)
 import Data.Distributive (Distributive(..))
 import Data.Functor.Rep (Representable(..), distributeRep)
 import Data.Functor.Identity (Identity(..))
-import Control.Comonad.Representable.Store (Store(..), StoreT(..), store, experiment)
+import Control.Comonad.Representable.Store (Store(..), StoreT(..), store, experiment, peek, pos)
 import Control.Comonad (Comonad(..))
 import Control.Concurrent
 import Data.List.Split
@@ -20,24 +20,15 @@ advent11 = do
     filepath <- getDataFileName "input11.txt"
     contents <- readFile filepath
     let lines = splitOn "\n" contents
-        gridish = map (map seatsFromChar) $ splitOn "\n" contents
+        gridish = map (map seatsFromChar) lines
         vgrid = fromList $ map fromList gridish 
         grid = mkGrid lines
-    putStrLn $ show lines
-    --print $ length vgrid
-    --print $ length $ vgrid ! 0
-    print $ length gridish
-    print $ length $ head gridish  
-    putStrLn $ render grid
-    putStrLn $ show $ queryGridArray lines (0,0)
-    putStrLn $ show $ queryGridArray lines (0,14)
-    putStrLn $ show $ (lines !! 0) !! 0
-    putStrLn $ show $ (lines !! 0) !! 14
-    untilNoChanges grid
+    untilNoChanges basicRule grid
+    untilNoChanges advancedRule grid
 
-untilNoChanges :: Grid -> IO ()
-untilNoChanges grid =
-    let newGrid = step basicRule grid 
+untilNoChanges ::  Rule -> Grid -> IO ()
+untilNoChanges rule grid =
+    let newGrid = step rule grid 
         rendered = render newGrid in
     if compareGrids grid newGrid
     then do
@@ -45,8 +36,7 @@ untilNoChanges grid =
         print $ length $ filter (== '#') rendered
     else do 
         putStrLn rendered
-        --threadDelay 1000
-        untilNoChanges newGrid
+        untilNoChanges rule newGrid
 
 type Coord = (Int, Int)
 type Grid = Store (Compose Vector Vector) SeatStatus
@@ -96,6 +86,57 @@ basicRule g =
     neighbours = experiment (coordsInGrid gridSize neighbourCoords) g
     numNeighboursOccupied = length (filter (== Occupied) neighbours)
 
+advancedRule :: Rule
+advancedRule g = 
+    case status of
+        Floor -> Floor
+        Occupied -> if numNeighboursOccupied > 4 then Empty else Occupied
+        Empty -> if numNeighboursOccupied == 0 then Occupied else Empty
+  where
+    status = extract g
+    position = pos g
+    directions = [north, northeast, east, southeast, south, southwest, west, northwest]
+    neighbours = maybesToList $ map (\x -> seatInDirection x 1 position g) directions
+    numNeighboursOccupied = length (filter (== Occupied) neighbours)
+
+type DirectionTransformer = Int -> Coord -> Coord
+
+north :: DirectionTransformer
+north dist (x,y) = (x, y-dist)
+
+northeast :: DirectionTransformer
+northeast dist (x,y) = (x+dist, y-dist)
+
+east :: DirectionTransformer
+east dist (x,y) = (x+dist, y)
+
+southeast :: DirectionTransformer
+southeast dist (x,y) = (x+dist, y+dist)
+
+south :: DirectionTransformer
+south dist (x,y) = (x, y+dist)
+
+southwest :: DirectionTransformer
+southwest dist (x,y) = (x-dist, y+dist)
+
+west :: DirectionTransformer
+west dist (x,y) = (x-dist, y)
+
+northwest :: DirectionTransformer
+northwest dist (x,y) = (x-dist, y-dist)
+
+seatInDirection :: DirectionTransformer -> Int -> Coord -> Grid -> Maybe SeatStatus
+seatInDirection transformer dist origin grid =
+    let seatToCheck = transformer dist origin in
+    if not (insideBounds seatToCheck)
+    then Nothing
+    else 
+        case peek seatToCheck grid of
+            Floor -> seatInDirection transformer (dist+1) origin grid
+            Occupied -> Just Occupied
+            Empty -> Just Empty 
+           
+
 step :: Rule -> Grid -> Grid
 step = extend
 
@@ -127,7 +168,15 @@ infix 9 !!?
 
 coordsInGrid :: Int -> [Coord] -> Coord -> [Coord]
 coordsInGrid gridSize coords origin =
-    filter (\(x,y) -> x < gridSize && y < gridSize && x >= 0 && y >= 0) (at coords origin)
+    filter insideBounds (at coords origin)
+
+insideBounds :: Coord -> Bool
+insideBounds (x,y) = x < gridSize && y < gridSize && x >= 0 && y >= 0
 
 at :: [Coord] -> Coord -> [Coord]
 coords `at` origin = map (addCoords origin) coords
+
+maybesToList                   :: [Maybe a] -> [a]
+maybesToList []                =  []
+maybesToList (Just a :ls)      =  a:maybesToList ls
+maybesToList (Nothing:ls)      =    maybesToList ls
