@@ -28,6 +28,7 @@ data-files:
     , input8.txt
     , input9.txt
     , input10.txt
+    , input11.txt
 data-dir:       data
 extra-source-files:
     README.md
@@ -47,6 +48,7 @@ library
     , Advent8
     , Advent9
     , Advent10
+    , Advent11
   other-modules:
       Paths_advent
   hs-source-dirs:
@@ -58,6 +60,11 @@ library
     , matrix    
     , containers
     , validation
+    , vector
+    , distributive
+    , comonad
+    , adjunctions
+    , split
   default-language: Haskell2010
 
 executable advent-exe
@@ -75,6 +82,11 @@ executable advent-exe
     , matrix
     , containers
     , validation
+    , vector
+    , distributive
+    , comonad
+    , adjunctions
+    , split
   default-language: Haskell2010
 
 test-suite advent-test
