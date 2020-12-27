@@ -3,7 +3,8 @@ module Advent13
     ) where
 
 import System.IO ()
-import Data.List ( sort, nub, intersect )
+import Data.List ( sort, nub, intersect, sortBy, maximumBy)
+import Data.Ord (comparing)
 import Text.ParserCombinators.Parsec
 import Paths_advent
 import Data.Map.Strict (Map)
@@ -16,7 +17,13 @@ advent13 = do
     let parsed = parseTimetables contents
     print $ case parsed of
         Left err -> show err
-        Right (target, buses)  -> show $ f target buses 0
+        Right (target, buses) -> show $ f target (map snd buses) 0
+    case parsed of
+        Left err -> print $ show err
+        Right (target, buses) -> do
+            let max = maximumBy (comparing snd) buses
+            print $ show max
+            print $ show $ g buses (snd max) (snd max - fst max)
 
 f :: Int -> [Int] -> Int -> (Int, Int)
 f target buses added =     
@@ -27,6 +34,14 @@ f target buses added =
     if null matches
     then f target buses (added + 1)
     else (fst $ head matches, added)
+
+--This is sooooo slow, I'm obviously missing something about how to determine the lowest number
+g :: [(Int, Int)] -> Int -> Int -> Int
+g buses increment current =
+    let b = map (\(x,y) -> ((current + x) `mod` y) == 0) buses in
+    if any not b
+    then g buses increment (current + increment)
+    else current
 
 eol :: GenParser Char st Char
 eol = char '\n'
@@ -52,21 +67,42 @@ int = do
     d <- many1 digit
     return $ s $ read d
 
-timetableFile :: GenParser Char () (Int, [Int])
-timetableFile = 
-    do target <- int
-       eol
-       buses <- many1 busEntry
-       eol
-       eof
-       return (target, buses)
+timetableFile :: GenParser Char () (Int, [(Int,Int)])
+timetableFile = do 
+    target <- int
+    eol
+    buses <- many1 busEntry
+    let zipped = zip [0..] buses
+    let busList = busTimesToTuple zipped
+    eol
+    eof
+    return (target, busList)
 
-busEntry :: GenParser Char st Int
-busEntry =
-    do many $ oneOf "x," 
-       i <- int
-       many $ oneOf "x,"
-       return i
+busEntry :: GenParser Char st BusTime
+busEntry = do 
+    i <- choice [bus, placeholder]
+    optional $ char ','
+    return i
 
-parseTimetables :: String -> Either ParseError (Int, [Int])
+bus :: GenParser Char st BusTime
+bus = do Bus <$> int
+
+placeholder :: GenParser Char st BusTime
+placeholder = do 
+    i <- char 'x'
+    return Placeholder
+
+busTimesToTuple :: [(Int, BusTime)] -> [(Int, Int)]
+busTimesToTuple [] = []
+busTimesToTuple ((x,y):xs) =
+    case y of
+        (Bus i) -> (x,i) : busTimesToTuple xs
+        _       -> busTimesToTuple xs  
+
+data BusTime =
+    Bus Int
+  | Placeholder
+  deriving (Show, Eq)
+
+parseTimetables :: String -> Either ParseError (Int, [(Int,Int)])
 parseTimetables =  parse timetableFile "(unknown)"
